@@ -1,29 +1,60 @@
-from google_analytics_plugin.hooks.google_analytics_hook import GoogleAnalyticsHook
+import json
+from datetime import datetime
+from tempfile import NamedTemporaryFile
 
 from airflow.hooks.S3_hook import S3Hook
 from airflow.models import BaseOperator
 
-import hashlib
-import json
-import os
-from datetime import datetime
+from GoogleAnalyticsPlugin.hooks.google_analytics_hook import GoogleAnalyticsHook
+
 
 class GoogleAnalyticsReportingToS3Operator(BaseOperator):
-    template_fields = ('s3_key', 'since', 'until')
+    """
+    Google Analytics Reporting To S3 Operator
+
+    :param google_analytics_conn_id:    The Google Analytics connection id.
+    :type google_analytics_conn_id:     string
+    :param view_id:                     The view id for associated report.
+    :type view_id:                      string/array
+    :param since:                       The date up from which to pull GA data.
+                                        This can either be a string in the format
+                                        of '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d'
+                                        but in either case it will be
+                                        passed to GA as '%Y-%m-%d'.
+    :type since:                        string
+    :param until:                       The date up to which to pull GA data.
+                                        This can either be a string in the format
+                                        of '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d'
+                                        but in either case it will be
+                                        passed to GA as '%Y-%m-%d'.
+    :type until:                        string
+    :param s3_conn_id:                  The s3 connection id.
+    :type s3_conn_id:                   string
+    :param s3_bucket:                   The S3 bucket to be used to store
+                                        the Google Analytics data.
+    :type s3_bucket:                    string
+    :param s3_key:                      The S3 key to be used to store
+                                        the Hubspot data.
+    :type s3_key:                       string
+    """
+
+    template_fields = ('s3_key',
+                       'since',
+                       'until')
 
     def __init__(self,
                  google_analytics_conn_id,
                  view_id,
                  since,
                  until,
-                 sampling_level,
                  dimensions,
                  metrics,
-                 page_size,
-                 include_empty_rows,
                  s3_conn_id,
                  s3_bucket,
                  s3_key,
+                 page_size=1000,
+                 include_empty_rows=True,
+                 sampling_level=None,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,32 +81,48 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
             'TIME': 'time'
         }
 
+        if self.page_size > 10000:
+            raise Exception('Please specify a page size equal to or lower than 10000.')
+
+        if not isinstance(self.include_empty_rows, bool):
+            raise Exception('Please specificy "include_empty_rows" as a boolean.')
+
     def execute(self, context):
         ga_conn = GoogleAnalyticsHook(self.google_analytics_conn_id)
         s3_conn = S3Hook(self.s3_conn_id)
-
-        # This has to be here because template_fields are not yet parsed in the __init__ function
-        since_formatted = datetime.strptime(self.since, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
-        until_formatted = datetime.strptime(self.until, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
-
-        report = ga_conn.get_analytics_report(self.view_id, since_formatted, until_formatted, self.sampling_level, self.dimensions, self.metrics, self.page_size, self.include_empty_rows)
+        try:
+            since_formatted = datetime.strptime(self.since, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+        except:
+            since_formatted = str(self.since)
+        try:
+            until_formatted = datetime.strptime(self.until, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+        except:
+            until_formatted = str(self.until)
+        report = ga_conn.get_analytics_report(self.view_id,
+                                              since_formatted,
+                                              until_formatted,
+                                              self.sampling_level,
+                                              self.dimensions,
+                                              self.metrics,
+                                              self.page_size,
+                                              self.include_empty_rows)
 
         columnHeader = report.get('columnHeader', {})
         # Right now all dimensions are hardcoded to varchar(255), will need a map if any non-varchar dimensions are used in the future
         # Unfortunately the API does not send back types for Dimensions like it does for Metrics (yet..)
         dimensionHeaders = [
-            { 'name': header.replace('ga:', ''), 'type': 'varchar(255)' }
+            {'name': header.replace('ga:', ''), 'type': 'varchar(255)'}
             for header
             in columnHeader.get('dimensions', [])
         ]
         metricHeaders = [
-            { 'name': entry.get('name').replace('ga:', ''), 'type': self.metricMap.get(entry.get('type'), 'varchar(255)') }
+            {'name': entry.get('name').replace('ga:', ''),
+             'type': self.metricMap.get(entry.get('type'), 'varchar(255)')}
             for entry
             in columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
         ]
 
-        file_name = '/tmp/{key}.jsonl'.format(key=self.s3_key)
-        with open(file_name, 'w') as ga_file:
+        with NamedTemporaryFile("w") as ga_file:
             rows = report.get('data', {}).get('rows', [])
 
             for row_counter, row in enumerate(rows):
@@ -100,5 +147,7 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
 
                     ga_file.write(json.dumps(data) + ('' if row_counter == len(rows) else '\n'))
 
-        s3_conn.load_file(file_name, self.s3_key, self.s3_bucket, True)
-        os.remove(file_name)
+            s3_conn.load_file(ga_file.name,
+                              self.s3_key,
+                              self.s3_bucket,
+                              True)
