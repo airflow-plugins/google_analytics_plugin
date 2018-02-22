@@ -5,7 +5,7 @@ from airflow.models import BaseOperator
 
 from airflow.hooks.S3_hook import S3Hook
 
-from GoogleAnalyticsPlugin.hooks.google_analytics_hook import GoogleAnalyticsHook
+from google_analytics_plugin.hooks.google_analytics_hook import GoogleAnalyticsHook
 
 
 class GoogleAnalyticsAccountSummariesToS3Operator(BaseOperator):

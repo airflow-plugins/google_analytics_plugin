@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 from airflow.hooks.S3_hook import S3Hook
 from airflow.models import BaseOperator
 
-from GoogleAnalyticsPlugin.hooks.google_analytics_hook import GoogleAnalyticsHook
+from google_analytics_plugin.hooks.google_analytics_hook import GoogleAnalyticsHook
 
 
 class GoogleAnalyticsReportingToS3Operator(BaseOperator):
