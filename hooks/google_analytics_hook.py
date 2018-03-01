@@ -147,6 +147,7 @@ class GoogleAnalyticsHook(BaseHook):
     def upload_string(self, account_id, profile_id, string, data_source_id):
         """
         Upload to custom data sources - example function
+        https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/management/uploads/uploadData
         """
         analytics = self.get_service_object(name='management')
         media = MediaInMemoryUpload(string, mimetype='application/octet-stream', resumable=False)
