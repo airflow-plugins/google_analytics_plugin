@@ -147,6 +147,7 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
 
                     ga_file.write(json.dumps(data) + ('' if row_counter == len(rows) else '\n'))
 
+            ga_file.flush()
             s3_conn.load_file(ga_file.name,
                               self.s3_key,
                               self.s3_bucket,
