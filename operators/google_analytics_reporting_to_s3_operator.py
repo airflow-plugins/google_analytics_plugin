@@ -122,7 +122,7 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
             in columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
         ]
 
-        with NamedTemporaryFile("w") as ga_file:
+        with NamedTemporaryFile("w+b",buffering=0) as ga_file:
             rows = report.get('data', {}).get('rows', [])
 
             for row_counter, row in enumerate(rows):
@@ -145,9 +145,8 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
                     data['viewid'] = self.view_id
                     data['timestamp'] = self.since
 
-                    ga_file.write(json.dumps(data) + ('' if row_counter == len(rows) else '\n'))
+                    ga_file.write((json.dumps(data) + ('' if row_counter == len(rows) else '\n')).encode())
 
-            ga_file.flush()
             s3_conn.load_file(ga_file.name,
                               self.s3_key,
                               self.s3_bucket,
