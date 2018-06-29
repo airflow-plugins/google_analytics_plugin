@@ -41,8 +41,8 @@ class GoogleAnalyticsAccountSummariesToS3Operator(BaseOperator):
             for item in account_summaries.get('items', []):
                 root_data_obj = {
                     'account_id': item['id'],
-                    'pgv_brand': self.brand,
-                    'pgv_space': self.space
+                    'brand': self.brand,
+                    'space': self.space
                 }
 
                 for web_property in item.get('webProperties', []):
