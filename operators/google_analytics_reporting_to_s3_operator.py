@@ -28,8 +28,8 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
                                         but in either case it will be
                                         passed to GA as '%Y-%m-%d'.
     :type until:                        string
-    :param s3_conn_id:                  The s3 connection id.
-    :type s3_conn_id:                   string
+    :param aws_conn_id:                 The s3 connection id.
+    :type aws_conn_id:                  string
     :param s3_bucket:                   The S3 bucket to be used to store
                                         the Google Analytics data.
     :type s3_bucket:                    string
@@ -38,25 +38,25 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
     :type s3_key:                       string
     """
 
-    template_fields = ('s3_key',
-                       'since',
-                       'until')
+    template_fields = ("s3_key", "since", "until")
 
-    def __init__(self,
-                 google_analytics_conn_id,
-                 view_id,
-                 since,
-                 until,
-                 dimensions,
-                 metrics,
-                 s3_conn_id,
-                 s3_bucket,
-                 s3_key,
-                 page_size=1000,
-                 include_empty_rows=True,
-                 sampling_level=None,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        google_analytics_conn_id,
+        view_id,
+        since,
+        until,
+        dimensions,
+        metrics,
+        aws_conn_id,
+        s3_bucket,
+        s3_key,
+        page_size=1000,
+        include_empty_rows=True,
+        sampling_level=None,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
         self.google_analytics_conn_id = google_analytics_conn_id
@@ -68,86 +68,93 @@ class GoogleAnalyticsReportingToS3Operator(BaseOperator):
         self.metrics = metrics
         self.page_size = page_size
         self.include_empty_rows = include_empty_rows
-        self.s3_conn_id = s3_conn_id
+        self.aws_conn_id = aws_conn_id
         self.s3_bucket = s3_bucket
         self.s3_key = s3_key
 
         self.metricMap = {
-            'METRIC_TYPE_UNSPECIFIED': 'varchar(255)',
-            'CURRENCY': 'decimal(20,5)',
-            'INTEGER': 'int(11)',
-            'FLOAT': 'decimal(20,5)',
-            'PERCENT': 'decimal(20,5)',
-            'TIME': 'time'
+            "METRIC_TYPE_UNSPECIFIED": "varchar(255)",
+            "CURRENCY": "decimal(20,5)",
+            "INTEGER": "int(11)",
+            "FLOAT": "decimal(20,5)",
+            "PERCENT": "decimal(20,5)",
+            "TIME": "time",
         }
 
         if self.page_size > 10000:
-            raise Exception('Please specify a page size equal to or lower than 10000.')
+            raise Exception("Please specify a page size equal to or lower than 10000.")
 
         if not isinstance(self.include_empty_rows, bool):
             raise Exception('Please specificy "include_empty_rows" as a boolean.')
 
     def execute(self, context):
         ga_conn = GoogleAnalyticsHook(self.google_analytics_conn_id)
-        s3_conn = S3Hook(self.s3_conn_id)
+        s3_conn = S3Hook(self.aws_conn_id)
         try:
-            since_formatted = datetime.strptime(self.since, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+            since_formatted = datetime.strptime(
+                self.since, "%Y-%m-%d %H:%M:%S"
+            ).strftime("%Y-%m-%d")
         except:
             since_formatted = str(self.since)
         try:
-            until_formatted = datetime.strptime(self.until, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+            until_formatted = datetime.strptime(
+                self.until, "%Y-%m-%d %H:%M:%S"
+            ).strftime("%Y-%m-%d")
         except:
             until_formatted = str(self.until)
-        report = ga_conn.get_analytics_report(self.view_id,
-                                              since_formatted,
-                                              until_formatted,
-                                              self.sampling_level,
-                                              self.dimensions,
-                                              self.metrics,
-                                              self.page_size,
-                                              self.include_empty_rows)
+        report = ga_conn.get_analytics_report(
+            self.view_id,
+            since_formatted,
+            until_formatted,
+            self.sampling_level,
+            self.dimensions,
+            self.metrics,
+            self.page_size,
+            self.include_empty_rows,
+        )
 
-        columnHeader = report.get('columnHeader', {})
+        columnHeader = report.get("columnHeader", {})
         # Right now all dimensions are hardcoded to varchar(255), will need a map if any non-varchar dimensions are used in the future
         # Unfortunately the API does not send back types for Dimensions like it does for Metrics (yet..)
         dimensionHeaders = [
-            {'name': header.replace('ga:', ''), 'type': 'varchar(255)'}
-            for header
-            in columnHeader.get('dimensions', [])
+            {"name": header.replace("ga:", ""), "type": "varchar(255)"}
+            for header in columnHeader.get("dimensions", [])
         ]
         metricHeaders = [
-            {'name': entry.get('name').replace('ga:', ''),
-             'type': self.metricMap.get(entry.get('type'), 'varchar(255)')}
-            for entry
-            in columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
+            {
+                "name": entry.get("name").replace("ga:", ""),
+                "type": self.metricMap.get(entry.get("type"), "varchar(255)"),
+            }
+            for entry in columnHeader.get("metricHeader", {}).get(
+                "metricHeaderEntries", []
+            )
         ]
 
         with NamedTemporaryFile("w") as ga_file:
-            rows = report.get('data', {}).get('rows', [])
+            rows = report.get("data", {}).get("rows", [])
 
             for row_counter, row in enumerate(rows):
                 root_data_obj = {}
-                dimensions = row.get('dimensions', [])
-                metrics = row.get('metrics', [])
+                dimensions = row.get("dimensions", [])
+                metrics = row.get("metrics", [])
 
                 for index, dimension in enumerate(dimensions):
-                    header = dimensionHeaders[index].get('name').lower()
+                    header = dimensionHeaders[index].get("name").lower()
                     root_data_obj[header] = dimension
 
                 for metric in metrics:
                     data = {}
                     data.update(root_data_obj)
 
-                    for index, value in enumerate(metric.get('values', [])):
-                        header = metricHeaders[index].get('name').lower()
+                    for index, value in enumerate(metric.get("values", [])):
+                        header = metricHeaders[index].get("name").lower()
                         data[header] = value
 
-                    data['viewid'] = self.view_id
-                    data['timestamp'] = self.since
+                    data["viewid"] = self.view_id
+                    data["timestamp"] = self.since
 
-                    ga_file.write(json.dumps(data) + ('' if row_counter == len(rows) else '\n'))
+                    ga_file.write(
+                        json.dumps(data) + ("" if row_counter == len(rows) else "\n")
+                    )
 
-            s3_conn.load_file(ga_file.name,
-                              self.s3_key,
-                              self.s3_bucket,
-                              True)
+            s3_conn.load_file(ga_file.name, self.s3_key, self.s3_bucket, True)
