@@ -9,7 +9,7 @@ from google_analytics_plugin.hooks.google_analytics_hook import GoogleAnalyticsH
 
 
 class GoogleAnalyticsAccountSummariesToS3Operator(BaseOperator):
-    template_fields = ("s3_key",)
+    template_fields = "s3_key"
 
     def __init__(
         self,
