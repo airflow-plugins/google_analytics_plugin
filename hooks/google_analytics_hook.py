@@ -104,7 +104,8 @@ class GoogleAnalyticsHook(BaseHook):
                              dimensions,
                              metrics,
                              page_size,
-                             include_empty_rows):
+                             include_empty_rows,
+                             dimension_filter_clauses=None):
 
         analytics = self.get_service_object(name='reporting')
 
@@ -115,7 +116,8 @@ class GoogleAnalyticsHook(BaseHook):
             'dimensions': dimensions,
             'metrics': metrics,
             'pageSize': page_size or 1000,
-            'includeEmptyRows': include_empty_rows or False
+            'includeEmptyRows': include_empty_rows or False,
+            'dimension_filter_clauses': dimension_filter_clauses
         }
 
         response = (analytics
