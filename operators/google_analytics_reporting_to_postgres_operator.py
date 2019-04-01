@@ -65,6 +65,7 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
                  include_empty_rows=True,
                  sampling_level=None,
                  dimension_filter_clauses=None,
+                 key_file=None,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,6 +85,7 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
         self.destination_table_dtypes = destination_table_dtypes
         self.if_exists = if_exists
         self.dimension_filter_clauses = dimension_filter_clauses
+        self.key_file=key_file
 
         self.metricMap = {
             'METRIC_TYPE_UNSPECIFIED': 'varchar(255)',
@@ -101,7 +103,7 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
             raise Exception('Please specificy "include_empty_rows" as a boolean.')
 
     def execute(self, context):
-        ga_conn = GoogleAnalyticsHook(self.google_analytics_conn_id, key_file='ga_key.json')
+        ga_conn = GoogleAnalyticsHook(self.google_analytics_conn_id, key_file=self.key_file)
         try:
             since_formatted = datetime.strptime(self.since, '%Y-%m-%d %H:%M:%S').strftime(
                 '%Y-%m-%d')
