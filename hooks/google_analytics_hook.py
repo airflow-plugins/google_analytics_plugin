@@ -117,7 +117,7 @@ class GoogleAnalyticsHook(BaseHook):
             'metrics': metrics,
             'pageSize': page_size or 1000,
             'includeEmptyRows': include_empty_rows or False,
-            'dimension_filter_clauses': dimension_filter_clauses
+            'dimensionFilterClauses': dimension_filter_clauses
         }
 
         response = (analytics
