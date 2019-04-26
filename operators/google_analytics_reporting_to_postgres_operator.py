@@ -47,7 +47,8 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
     """
 
     template_fields = ('since',
-                       'until')
+                       'until',
+                       'destination_table')
 
     def __init__(self,
                  google_analytics_conn_id,
@@ -122,7 +123,7 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
                                               self.metrics,
                                               self.page_size,
                                               self.include_empty_rows,
-                                              self.dimension_filter_clauses
+                                              dimension_filter_clauses=self.dimension_filter_clauses
                                               )
 
         columnHeader = report.get('columnHeader', {})
