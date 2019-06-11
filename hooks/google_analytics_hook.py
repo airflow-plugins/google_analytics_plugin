@@ -9,16 +9,20 @@ If you don't have an OAUTH token, you may authenticate by passing a
 object will expect the following fields and use them to generate an OAUTH token
 on execution.
 
-"type": "service_account",
-"project_id": "example-project-id",
-"private_key_id": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-"private_key": "-----BEGIN PRIVATE KEY-----\nXXXXX\n-----END PRIVATE KEY-----\n",
-"client_email": "google-analytics@{PROJECT_ID}.iam.gserviceaccount.com",
-"client_id": "XXXXXXXXXXXXXXXXXXXXXX",
-"auth_uri": "https://accounts.google.com/o/oauth2/auth",
-"token_uri": "https://accounts.google.com/o/oauth2/token",
-"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-"client_x509_cert_url": "{CERT_URL}"
+{"client_secrets":
+    {
+    "type": "service_account",
+    "project_id": "example-project-id",
+    "private_key_id": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nXXXXX\n-----END PRIVATE KEY-----\n",
+    "client_email": "google-analytics@{PROJECT_ID}.iam.gserviceaccount.com",
+    "client_id": "XXXXXXXXXXXXXXXXXXXXXX",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://accounts.google.com/o/oauth2/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "{CERT_URL}"
+    }
+}
 
 In Airflow 1.9.0 this requires to use the web interface or cli to set connection extra's. If you prefer to not use the
 web interface to manage connections you can also supply the key as a json file.
