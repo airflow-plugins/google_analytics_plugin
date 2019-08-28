@@ -142,6 +142,8 @@ class GoogleAnalyticsReportingToPostgresOperator(BaseOperator):
         ]
 
         print('samples read', report.get('data', {}).get('samplesReadCounts', 0))
+        print('total read', report.get('data', {}).get('totals', 0))
+        print('row count', report.get('data', {}).get('rowCount', 0))
 
         rows = report.get('data', {}).get('rows', [])
         all_data = []
