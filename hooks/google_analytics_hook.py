@@ -34,8 +34,8 @@ import os
 
 from airflow.hooks.base_hook import BaseHook
 from airflow import configuration as conf
-from apiclient.discovery import build
-from apiclient.http import MediaInMemoryUpload
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaInMemoryUpload
 from oauth2client.service_account import ServiceAccountCredentials
 from oauth2client.client import AccessTokenCredentials
 from collections import namedtuple
