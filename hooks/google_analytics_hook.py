@@ -32,6 +32,7 @@ https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 import time
 import os
 
+from airflow import settings
 from airflow.hooks.base_hook import BaseHook
 from airflow import configuration as conf
 from apiclient.discovery import build
@@ -52,7 +53,7 @@ class GoogleAnalyticsHook(BaseHook):
                                 version='v3',
                                 scopes=['https://www.googleapis.com/auth/analytics'])
     }
-    _key_folder = os.path.join(conf.get('core', 'airflow_home'), 'keys')
+    _key_folder = os.path.join(settings.AIRFLOW_HOME, 'keys')
 
     def __init__(self, google_analytics_conn_id='google_analytics_default', key_file=None):
         self.google_analytics_conn_id = google_analytics_conn_id
